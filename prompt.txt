@@ -1,0 +1,116 @@
+
+## prompt to generate few-shot in context learning dataset for LLM 
+I plan to build up a few-shot in context learning dataset for LLM to add single or multiple labels for a post
+1. The labels it self has hierarchical structure, and is built from the json file in email_dumps directory.
+2. Take file email_dumps/LLM_RAG_evaluation_20241222_220726.json as example, ignore the datetime relative part, it means the label 'evaluation' is child of label 'RAG', and label 'RAG' is child of label 'LLM'. There are two exception: 'good_material' and 'daily_news' are signle labels.
+3. Attach the post/email id to the corresponding label, for example the id in file email_dumps/LLM_RAG_evaluation_20241222_220726.json, should be attached to label 'evaluation' node.
+4. Use the label structure to generate few-shot in context learning dataset for LLM with 32K context length, and for a post/email id, use the correpsonding "post_content_en" in analyzed_emails_deepseek.json as context.
+5. Add a command line function in main_cli.py for this feature and keep the code base sturcture consistent and clear.
+6. Please pay attention, when generate the few-shot dataset,  please keep the same portion of data for each label. and make sure for each label, at least one post/email is added.
+7. Add the logic to make sure the final few-shot dataset size is no more than 32K tokens.
+
+
+## prompt to use config file to identify the which token.pickle and credential.json file
+1. Update gmail_api/auth.py to use config file to identify the which token.pickle and credential.json file
+2. Keep the updated solution as simple as possible.
+
+## prompt to add a command line function to dump all emails with specified date range
+1. Update main_cli.py to add a command line function to dump all emails with specified date range
+2. Use the following parameters for this function:
+    - start_date: start date in format "YYYY-MM-DD"
+    - end_date: end date in format "YYYY-MM-DD"
+    - output_dir: directory to save the JSON files
+    - overwrite: whether to overwrite existing JSON files
+    - verbose: whether to enable verbose logging
+3. When save the emails, follow the directory structure as ${output_dir}/YYYY/MM/DD/${email_id}.json
+4. keep the code base sturcture consistent and clear.
+
+
+## prompt to add a command line function to analyize emails with specified date range
+1. Update main_cli.py to add a command line function to analyize emails with specified date range
+2. Use the following parameters for this function:
+    - start_date: start date in format "YYYY-MM-DD"
+    - end_date: end date in format "YYYY-MM-DD"
+    - input_dir: directory containing email JSON files
+    - output_file: output JSON file for analyzed emails, by default it is the same as input_dir
+    - overwrite: whether to overwrite existing JSON files
+    - verbose: whether to enable verbose logging
+3. When load the raw email, follow the directory structure as ${input_dir}/YYYY/MM/DD/${email_id}.json
+4. Use analyze_email to analyize the email content and save the results to ${output_dir}/YYYY/MM/DD/${email_id}_analyzed.json
+5. keep the code base sturcture consistent and clear
+
+
+## prompt to add a command line to use few-shot in context learning to generate labels for the post with specified date range
+1. Update main_cli.py to add a command line to use few-shot in context learning to generate labels for the post with specified date range
+2. Use the following parameters for this function:
+    - start_date: start date in format "YYYY-MM-DD"
+    - end_date: end date in format "YYYY-MM-DD"
+    - input_dir: directory containing email JSON files
+    - output_file: output JSON file for analyzed emails, by default it is the same as input_dir
+    - overwrite: whether to overwrite existing JSON files
+    - verbose: whether to enable verbose logging
+3. Follow the get_email_analysis(content) definition, use llm decoration in promptic package to generate labels for a given post
+    - the input for this function is the post_content_en, and the output is a list of labels
+    - the content for few-shot content is loaded from ./few_short_examples.json,  and use contents and labels fields to generate few-shot examples as the part of llm prompt
+4. save the labels list into the original analyized email json file as "post_labels" field, and update the original analyized email json file.
+5. keep the code base sturcture consistent and clear
+
+
+## prompt to add a command line to start a streamlit app to generate weekly report with specified date range for user to edit 
+1. Update main_cli.py to add a command line to start a streamlit app to display the email with specified date range for user to edit
+2. Use the following parameters for this function:
+    - start_date: start date in format "YYYY-MM-DD"
+    - end_date: end date in format "YYYY-MM-DD"
+    - input_dir: directory containing email JSON files
+    - overwrite: whether to overwrite existing JSON files
+    - verbose: whether to enable verbose logging
+3. For a given start_date and end_date, the target file is ${input_dir}/YYYY/weekly/week_{THE_WEEK_NUMBER}.json
+    - THE_WEEK_NUMBER is calculated based on the end_date, for example, if the end_date is 2025-01-06, then THE_WEEK_NUMBER is 02
+4. first check if the target file exists, if yes, load the target file as the data source for the streamlit app
+5. if not, load all analyze email in the date range in ${input_dir} directory as the data source for the streamlit app
+6. for every email post, display the following information, and some of these information can be edited by the user:
+    - email id (read-only): email_id in analyized email
+    - post_datetime (read-only): post_datetime in analyized email
+    - title_cn (editable): post_summary_cn in analyized email, title_cn in target file
+    - title_en (editable): post_summary_en in analyized email, title_en in target file
+    - post_content_cn (editable): post_content_cn in analyized email
+    - post_content_en (editable): post_content_en in analyized email
+    - post_labels (editable): post_labels list in analyized email
+    - link_lists (editable): link_lists in analyized email
+    - user_input_cn (editable): user_input_cn of corresponding post in target file, it is a string of user edit content
+    - user_input_en (editable): user_input_en of corresponding post in target file, it is a string of user edit content
+    - main_image(editable): main_image of correpsonding post in target file, image url for this post
+    - main_link(editable): main_link of corresponding post in target file, it is a string of url
+    - wechat_selected (checkbox): is_selected of corresponding post in target file, it is a boolean value
+    - medium_selected (checkbox): is_selected of corresponding post in target file, it is a boolean value
+7. For user_input, image lists and is_selected exists in target file, not in analyzed emails, add them to the target file
+8. For every link in link_lists, when user click the link, open it the browser
+9. For every image in main_image, when user click the image, open it the browser
+10. For this weekly report, the streamlit UI have a editable summary area, and save in the target file
+11. The streamlit UI have an action area,  have the following buttons:
+    - download: download all main_images, save it to ${input_dir}/YYYY/MM/DD/{email_id}_main_image.jpg
+    - save: save all the content to the target file,
+    - wechat: generate wechat report, save it to ${input_dir}/YYYY/weekly/week_{THE_WEEK_NUMBER}-wechat-report.md
+    - medium: generate medium report, save it to ${input_dir}/YYYY/weekly/week_{THE_WEEK_NUMBER}-medium-report.md
+12. wechat report, this is a markdown format file, have the following function:
+    - group all wechat_selected email post by post_label, the email post in the same group, have the same post_label set
+    - write the markdown file group by group, for a group, use "## {post_labels}" as the group title 
+    - for every email post in the group, generate post content as the following in the same order:
+      a) use "### {title_cn}" as the email post title, 
+      b) use "{post_content_cn}" as the email post content
+      c) use "{main_image}" as the email post image
+      d) use "{user_input_cn}" as the latest summary
+      e) use "{main_link}" as the email post link
+    - for post content, make it in a good markdown format
+13. medium report, this is a markdown format file, have the following function:
+    - group all medium_selected email post by post_label, the email post in the same group, have the same post_label set
+    - write the markdown file group by group, for a group, use "## {post_labels}" as the group title
+    - for every email post in the group, generate post content as the following:  use "### {title_en}" as the email post title, and use "{post_content_en}" as the email post content, use "{main_image}" as the email post image, use"{user_input_en}" as the latest summary
+    - for post content, make it in a good markdown format
+14. For streamlit UI layout, try to keep the posts detail in the main area, and put other components in the side bar
+    - make sure all the content in the same page, do not jump between the tabs
+    - always show the statistic summary and action button
+    - for a email post, if wechat or medium is selected, make it easily visible
+15. some exception to avoid:
+    - The `use_column_width` parameter has been deprecated and will be removed in a future release. Please utilize the `use_container_width` parameter instead.
+16. keep the code base sturcture consistent and clear
