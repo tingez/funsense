@@ -5,3 +5,7 @@ email_dumps
 backup
 tokens
 data
+venv
+*.pyc
+.DS_Store
+.vscode

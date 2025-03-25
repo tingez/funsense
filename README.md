@@ -1,13 +1,16 @@
-# Gmail Email Tagger
+![FunSense UI](pics/FunSense-UI.png)
+# FunSense Email Tagger
 
-This project provides functionality to automatically analyze and tag Gmail emails based on their content. It uses the Gmail API to retrieve emails, analyze their content, and add appropriate labels.
+This project provides functionality to automatically analyze and tag Gmail emails based on their content. It uses the Gmail API to retrieve emails, analyze their content, and add appropriate labels. It also includes a weekly report generator for summarizing email content.
 
 ## Features
 
-- Retrieve emails from Gmail account
-- Analyze email content using customizable rules
+- Retrieve emails from Gmail account by date range
+- Analyze email content using LLM-based processing
 - Automatically tag emails with relevant labels
-- Support for custom tagging rules
+- Generate weekly reports from analyzed emails
+- Bi-directional translation between Chinese and English content
+- Twitter content crawling and conversion to markdown
 
 ## Setup
 
@@ -26,7 +29,7 @@ This project provides functionality to automatically analyze and tag Gmail email
 3. **First Run**
    - Run the main script:
      ```bash
-     python main.py
+     python main_cli.py dump-emails-by-date 2025-01-01 2025-01-31 --output-dir email_dumps --verbose
      ```
    - On first run, it will open a browser window for OAuth authentication
    - Grant the required permissions
@@ -37,58 +40,54 @@ This project provides functionality to automatically analyze and tag Gmail email
 ```
 ├── gmail_api/
 │   ├── auth.py           # Authentication handling
-│   ├── email_service.py  # Gmail API interactions
-│   └── email_analyzer.py # Email content analysis
-├── main.py              # Main entry point
-├── requirements.txt     # Project dependencies
-└── README.md           # This file
+│   ├── email_dumper.py   # Email retrieval and storage
+│   └── email_analyzer.py # Email content analysis with LLM
+├── weekly_report/
+│   └── report_app.py     # Streamlit app for weekly reports
+├── twitter/
+│   └── twitter_crawler.py # Twitter content crawling
+├── main_cli.py           # Main CLI entry point using Typer
+├── requirements.txt      # Project dependencies
+└── README.md             # This file
 ```
 
-## Default Tags
+## Command-Line Interface
 
-The system comes with default tags for:
-- Urgent messages
-- Finance-related emails
-- Meeting invitations
-- Reports
-- Follow-up items
+The project uses Typer to provide a command-line interface with the following main commands:
 
-## Customization
+- `dump-emails-by-date`: Retrieve emails within a date range
+- `analyze-emails-by-date`: Analyze email content using LLM
+- `generate-labels-by-date`: Generate labels for emails using few-shot learning
+- `weekly-report`: Launch Streamlit app for weekly report generation
+- `crawl-tweet`: Crawl a tweet and convert to markdown
 
-You can add custom rules by modifying the `rules` dictionary in `email_analyzer.py` or using the `add_custom_rule` method:
+Run `python main_cli.py --help` for more information on available commands.
 
-```python
-analyzer = EmailAnalyzer()
-analyzer.add_custom_rule('project', r'\b(project|milestone|deadline)\b')
-python dump_emails.py --labels-file labels.txt --output-dir email_dumps --verbose
-python gmail_api/email_analyzer.py email_dumps/ -o analyzed_emails.json --verbose
-```
+## Weekly Report Generator
 
-## Error Handling
+The weekly report generator is a Streamlit app that allows you to:
 
-The system includes comprehensive error handling for:
-- Authentication failures
-- API request issues
-- Email processing errors
+- View and edit analyzed email content
+- Select posts for different platforms (WeChat, Medium)
+- Translate content between Chinese and English
+- Generate markdown reports for different platforms
+- Add custom content and images to posts
 
-All errors are logged with appropriate messages for debugging.
+## Few-Shot Learning for Labels
 
-## Security
+The system uses few-shot learning to generate appropriate labels for emails:
 
-- Uses OAuth 2.0 for secure authentication
-- Stores credentials securely
-- Requires minimal permissions (modify only for adding labels)
-- No email content is stored locally
-
-## Contributing
-
-Feel free to submit issues and enhancement requests!
-
-
+- Examples are stored in a JSON file
+- Labels are organized in a hierarchical structure
+- The system ensures balanced representation across labels
 
 ## usage:
  # not include the end
  - python main_cli.py dump-emails-by-date 2025-01-04 2025-01-12 --output-dir email_dumps --verbose
  - python main_cli.py analyze-emails-by-date 2025-01-04 2025-01-12 --input-dir email_dumps  --verbose
- - python main_cli.py weekly-report --start-date 2025-01-04 --end-date 2025-01-12 --input-dir email_dumps --verbose
- - /Users/tinge/work/tinge/agent/venv/funsense_env/bin/streamlit run weekly_report/report_app.py -- --start-date 2025-01-12 --end-date 2025-01-20 --input-dir email_dumps
+ - python main_cli.py generate-labels-by-date 2025-01-04 2025-01-12 --input-dir email_dumps --verbose
+ - streamlit run weekly_report/report_app.py -- --start-date 2025-01-12 --end-date 2025-01-20 --input-dir email_dumps
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!

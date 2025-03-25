@@ -37,9 +37,24 @@ Rules:
 Example output format: ["label1", "label2", "label3"]
 """
 
+
+TRANSLATE_FROM_EN_TO_CN_SYSTEM_PROMPT = """You are an AI assistant that translates content from English to Chinese.
+
+Rules:
+1. Keep the same format of the original content
+2. Return ONLY the translated content, nothing else
+"""
+
+TRANSLATE_FROM_CN_TO_EN_SYSTEM_PROMPT = """You are an AI assistant that translates content from Chinese to English.
+
+Rules:
+1. Keep the same format of the original content
+2. Return ONLY the translated content, nothing else
+"""
+
 @llm(
     #model='ollama/llama3.1:8b-instruct-fp16', 
-    #model='ollama/llama3.3:70b-instruct-q2_K', 
+    #model='ollama/qwen2.5:7b-instruct-fp16',
     model='deepseek/deepseek-chat',
     #api_base='http://192.168.8.119:11434',
     temperature=0,
@@ -52,7 +67,9 @@ def get_email_analysis(content: str) -> EmailAnalysis:
     """Extract structured analysis from email content {content}"""
 
 @llm(
-    model='deepseek/deepseek-chat',
+    model='ollama/qwen2.5:7b-instruct-fp16',
+    #model='deepseek/deepseek-chat',
+    api_base='http://192.168.8.120:11434',
     temperature=0,
     top_p=0.1,
     timeout=30,
@@ -71,6 +88,41 @@ def generate_labels(content: str, examples: str) -> List[str]:
     Return ONLY a JSON array of label strings, nothing else.
     For example: ["label1", "label2", "label3"]
     """
+
+@llm(
+    model='ollama/qwen2.5:7b-instruct-fp16',
+    api_base='http://192.168.8.120:11434',
+    temperature=0,
+    top_p=0.1,
+    timeout=30,
+    debug=True,
+    system=TRANSLATE_FROM_EN_TO_CN_SYSTEM_PROMPT
+)
+def translate_from_en_to_cn(content: str) -> str:
+    """Translate the following content from English to Chinese.
+
+    {content}
+
+    Return ONLY the translated content, nothing else.
+    """
+
+@llm(
+    model='ollama/qwen2.5:7b-instruct-fp16',
+    api_base='http://192.168.8.120:11434',
+    temperature=0,
+    top_p=0.1,
+    timeout=30,
+    debug=True,
+    system=TRANSLATE_FROM_CN_TO_EN_SYSTEM_PROMPT
+)
+def translate_from_cn_to_en(content: str) -> str:
+    """Translate the following content from Chinese to English
+
+    {content}
+
+    Return ONLY the translated content, nothing else.
+    """
+
 
 def extract_urls(text: str) -> List[str]:
     """Extract URLs from text using regex"""
@@ -214,7 +266,12 @@ async def process_date_range(
                     continue
                     
                 for day in range(1, 32):
-                    current_dt = datetime(year, month, day)
+                    try:
+                        current_dt = datetime(year, month, day)
+                    except ValueError as e:
+                        print(f"Invalid date: {year}-{month}-{day}")
+                        continue
+
                     if current_dt < start_dt or current_dt > end_dt:
                         continue
                         
@@ -334,7 +391,11 @@ async def process_date_range_labels(
                     continue
                     
                 for day in range(1, 32):
-                    current_dt = datetime(year, month, day)
+                    try:
+                        current_dt = datetime(year, month, day)
+                    except Exception as e:
+                        print(f"Invalid date: {year}-{month}-{day}")
+                        continue
                     if current_dt < start_dt or current_dt > end_dt:
                         continue
                         

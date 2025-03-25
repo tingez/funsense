@@ -30,7 +30,7 @@ def trim_data_according_to_openai():
     all_emails = []
     for file_path in json_files:
         try:
-            print(f"Processing {file_path.name}")
+            #print(f"Processing {file_path}")
             with open(file_path, 'r', encoding='utf-8') as f:
                 email_datas = json.load(f)
             # Handle both single email and list of emails
@@ -490,7 +490,7 @@ def weekly_report(
         
         # Create a new sys.argv for Streamlit
         sys.argv = [
-            "streamlit",
+            "/Users/tinge/work/tinge/agent/venv/funsense_env/bin/streamlit",
             "run",
             os.path.join(os.path.dirname(__file__), "weekly_report", "report_app.py"),
             "--",
