@@ -1,5 +1,5 @@
 ![FunSense UI](pics/FunSense-UI.png)
-# FunSense Email Tagger
+# FunSense AI Tapas
 
 This project provides functionality to automatically analyze and tag Gmail emails based on their content. It uses the Gmail API to retrieve emails, analyze their content, and add appropriate labels. It also includes a weekly report generator for summarizing email content.
 
