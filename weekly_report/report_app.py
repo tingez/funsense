@@ -173,6 +173,45 @@ def generate_markdown_report(report: WeeklyReport, is_wechat: bool) -> str:
     
     return "\n".join(line for line in content if line is not None)
 
+def generate_notion_report(report: WeeklyReport) -> str:
+    """Generate a markdown report for Notion using English content but WeChat format."""
+    # Only include posts selected for WeChat
+    posts = [p for p in report.posts if p.wechat_selected]
+    
+    # Group posts by labels
+    posts_by_labels = {}
+    for post in posts:
+        labels_key = ", ".join(sorted(post.post_labels))
+        if not labels_key:
+            labels_key = "Uncategorized"
+        if labels_key not in posts_by_labels:
+            posts_by_labels[labels_key] = []
+        posts_by_labels[labels_key].append(post)
+    
+    # Generate markdown content
+    content = []
+    for labels, group_posts in posts_by_labels.items():
+        labels_list = labels.split(", ")
+        labels_md = ', '.join([f"**{label.strip()}**" for label in labels_list])
+        
+        for post in group_posts:
+            content.extend([
+                f"## ({posts.index(post) + 1}/{len(posts)}) {post.title_en}",
+                f"{labels_md}",
+                "",
+                post.post_content_en,
+                "",
+                f"![]({post.main_image})" if post.main_image else "",
+                "",
+                post.user_input_en if post.user_input_en else "",
+                "",
+                f"[{post.main_link}]({post.main_link})" if post.main_link else "",
+                ""
+            ])
+        content.append("")
+    
+    return "\n".join(line for line in content if line is not None)
+
 def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = False):
     """Run the Streamlit app with the given parameters."""
     st.set_page_config(layout="wide", page_title="Weekly Report Editor")
@@ -420,6 +459,13 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
             with open(md_file, 'w', encoding='utf-8') as f:
                 f.write(md_content)
             st.success(f"Generated Medium report")
+            
+        if st.button(" Notion Report", use_container_width=True, help="Generate English version of WeChat report for Notion"):
+            md_content = generate_notion_report(report)
+            md_file = os.path.join(os.path.dirname(target_file), f"week_{week_number:02d}-notion-report.md")
+            with open(md_file, 'w', encoding='utf-8') as f:
+                f.write(md_content)
+            st.success(f"Generated Notion report")
 
     # Main area - Posts
     st.header("Email Posts")
