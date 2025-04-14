@@ -54,9 +54,9 @@ Rules:
 
 @llm(
     #model='ollama/llama3.1:8b-instruct-fp16', 
-    #model='ollama/qwen2.5:7b-instruct-fp16',
-    model='deepseek/deepseek-chat',
-    #api_base='http://192.168.8.119:11434',
+    model='ollama/qwen2.5:14b-instruct-q8_0',
+    #model='deepseek/deepseek-chat',
+    api_base='http://192.168.8.120:11434',
     temperature=0,
     top_p=0.1,
     timeout=30,
@@ -67,7 +67,8 @@ def get_email_analysis(content: str) -> EmailAnalysis:
     """Extract structured analysis from email content {content}"""
 
 @llm(
-    model='ollama/qwen2.5:7b-instruct-fp16',
+    #model='ollama/qwen2.5:14b-instruct-fp16',
+    model='ollama/qwen2.5:14b-instruct-q8_0',
     #model='deepseek/deepseek-chat',
     api_base='http://192.168.8.120:11434',
     temperature=0,
@@ -90,7 +91,8 @@ def generate_labels(content: str, examples: str) -> List[str]:
     """
 
 @llm(
-    model='ollama/qwen2.5:7b-instruct-fp16',
+    #model='ollama/qwen2.5:14b-instruct-fp16',
+    model='ollama/qwen2.5:14b-instruct-q8_0',
     api_base='http://192.168.8.120:11434',
     temperature=0,
     top_p=0.1,
@@ -107,7 +109,8 @@ def translate_from_en_to_cn(content: str) -> str:
     """
 
 @llm(
-    model='ollama/qwen2.5:7b-instruct-fp16',
+    #model='ollama/qwen2.5:14b-instruct-fp16',
+    model='ollama/qwen2.5:14b-instruct-q8_0',
     api_base='http://192.168.8.120:11434',
     temperature=0,
     top_p=0.1,

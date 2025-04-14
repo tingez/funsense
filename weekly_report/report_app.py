@@ -613,7 +613,8 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
     # WeChat selection column
     with header_cols[1]:
         prev_wechat = st.session_state[post_key].wechat_selected
-        wechat_selected = st.checkbox(" WeChat", value=prev_wechat, key=f"wechat_{post.email_id}")
+        # Ensure unique key by combining the index with email_id
+        wechat_selected = st.checkbox(" WeChat", value=prev_wechat, key=f"wechat_{post.email_id}_{index}")
         if wechat_selected != prev_wechat:
             # Update session state counter for statistics
             st.session_state.wechat_count += (1 if wechat_selected else -1)
@@ -625,13 +626,14 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
             update_report_post(post.email_id)
             
             print(f"WeChat selection changed for post {post.email_id}: {wechat_selected}")
-            st.session_state[f"wechat_changed_{post.email_id}"] = True
+            st.session_state[f"wechat_changed_{post.email_id}_{index}"] = True
             st.rerun()
     
     # Medium selection column
     with header_cols[2]:
         prev_medium = st.session_state[post_key].medium_selected
-        medium_selected = st.checkbox(" Medium", value=prev_medium, key=f"medium_{post.email_id}")
+        # Ensure unique key by combining the index with email_id
+        medium_selected = st.checkbox(" Medium", value=prev_medium, key=f"medium_{post.email_id}_{index}")
         if medium_selected != prev_medium:
             # Update session state counter for statistics
             st.session_state.medium_count += (1 if medium_selected else -1)
@@ -643,7 +645,7 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
             update_report_post(post.email_id)
             
             print(f"Medium selection changed for post {post.email_id}: {medium_selected}")
-            st.session_state[f"medium_changed_{post.email_id}"] = True
+            st.session_state[f"medium_changed_{post.email_id}_{index}"] = True
             st.rerun()
 
     # Post metadata
