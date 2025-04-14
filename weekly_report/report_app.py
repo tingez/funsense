@@ -173,6 +173,20 @@ def generate_markdown_report(report: WeeklyReport, is_wechat: bool) -> str:
     # Group posts by their labels
     grouped_posts = _group_posts_by_labels(selected_posts)
     
+    # Create table of contents for WeChat reports
+    final_blocks = []
+    if is_wechat:
+        toc_blocks = ["# 目录", ""]
+        post_index = 1
+        for labels_key, posts_in_group in grouped_posts.items():
+            for post in posts_in_group:
+                toc_blocks.append(f"{post_index}. [{post.title_cn}](#{post_index}-{post.title_cn.lower().replace(' ', '-')})")
+                post_index += 1
+        toc_blocks.append("")
+        toc_blocks.append("---")
+        toc_blocks.append("")
+        final_blocks.extend(toc_blocks)
+
     # Generate markdown content
     content_blocks = []
     for labels_key, posts_in_group in grouped_posts.items():
@@ -210,9 +224,12 @@ def generate_markdown_report(report: WeeklyReport, is_wechat: bool) -> str:
                     ""
                 ])
         content_blocks.append("")
-    
+
+    # Add content blocks to final output
+    final_blocks.extend(content_blocks)
+
     # Join non-None lines into final markdown
-    return "\n".join(line for line in content_blocks if line is not None)
+    return "\n".join(line for line in final_blocks if line is not None)
 
 
 def generate_notion_report(report: WeeklyReport) -> str:
@@ -223,6 +240,17 @@ def generate_notion_report(report: WeeklyReport) -> str:
     # Group posts by their labels
     grouped_posts = _group_posts_by_labels(wechat_posts)
     
+    # First, create table of contents
+    toc_blocks = ["# Table of Contents", ""]
+    post_index = 1
+    for labels_key, posts_in_group in grouped_posts.items():
+        for post in posts_in_group:
+            toc_blocks.append(f"{post_index}. [{post.title_en}](#{post_index}-{post.title_en.lower().replace(' ', '-')})")
+            post_index += 1
+    toc_blocks.append("")
+    toc_blocks.append("---")
+    toc_blocks.append("")
+
     # Generate markdown content
     content_blocks = []
     for labels_key, posts_in_group in grouped_posts.items():
@@ -249,8 +277,11 @@ def generate_notion_report(report: WeeklyReport) -> str:
             ])
         content_blocks.append("")
     
+    # Combine TOC with content blocks
+    final_blocks = toc_blocks + content_blocks
+
     # Join non-None lines into final markdown
-    return "\n".join(line for line in content_blocks if line is not None)
+    return "\n".join(line for line in final_blocks if line is not None)
 
 def _init_session_state() -> None:
     """Initialize Streamlit session state for tracking report data and selections."""
