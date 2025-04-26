@@ -114,6 +114,9 @@ def convert_to_weekly_post(email_data: Dict[str, Any]) -> WeeklyPost:
             email_data['post_labels'] = []
     
     # Create WeeklyPost object from email data
+    if not email_data.get('post_datetime'):
+        return None
+
     return WeeklyPost(
         email_id=email_data["email_id"],
         post_datetime=email_data["post_datetime"],
@@ -323,6 +326,7 @@ def _create_new_report(input_dir: str, start_date: str, end_date: str, week_numb
     """Create a new report from analyzed emails."""
     analyzed_emails = load_analyzed_emails(input_dir, start_date, end_date)
     posts = [convert_to_weekly_post(email) for email in analyzed_emails]
+    posts = [post for post in posts if post is not None]
     report = WeeklyReport(
         start_date=start_date,
         end_date=end_date,
