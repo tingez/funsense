@@ -7,11 +7,10 @@ import traceback
 from typing import Optional
 from pathlib import Path
 
-from gmail_api.email_analyzer import process_directory, process_date_range, process_date_range_labels
+from gmail_api.email_analyzer import process_directory, process_date_range
 from gmail_api.auth import get_gmail_service
 from gmail_api.email_dumper import EmailDumper
 from googleapiclient.discovery import build
-from few_shot_dataset import build_label_hierarchy, FewShotDataset
 import datetime
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
@@ -312,109 +311,6 @@ def analyze_emails_by_date(
         print(traceback.format_exc())
         raise typer.Exit(1)
 
-
-@app.command()
-def generate_labels_by_date(
-    start_date: str = typer.Argument(..., help="Start date in format YYYY-MM-DD"),
-    end_date: str = typer.Argument(..., help="End date in format YYYY-MM-DD"),
-    input_dir: str = typer.Option("email_dumps", help="Directory containing email JSON files"),
-    examples_file: str = typer.Option("./few_shot_examples.json", help="Path to few-shot examples JSON file"),
-    overwrite: bool = typer.Option(False, help="Whether to overwrite existing labels"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
-):
-    """
-    Generate labels for emails within a specified date range using few-shot learning.
-    Labels will be added to the analyzed email JSON files as 'post_labels' field.
-    """
-    try:
-        # Validate date format
-        try:
-            datetime.datetime.strptime(start_date, "%Y-%m-%d")
-            datetime.datetime.strptime(end_date, "%Y-%m-%d")
-        except ValueError as e:
-            print(f"Invalid date format: {e}")
-            print("Please use YYYY-MM-DD format")
-            raise typer.Exit(1)
-
-        if verbose:
-            print(f"Generating labels for emails from {start_date} to {end_date}")
-            print(f"Input directory: {input_dir}")
-            print(f"Using examples from: {examples_file}")
-
-        # Process emails
-        result = asyncio.run(process_date_range_labels(
-            input_dir=input_dir,
-            start_date=start_date,
-            end_date=end_date,
-            examples_file=examples_file,
-            overwrite=overwrite,
-            verbose=verbose
-        ))
-
-        print(f"Successfully generated labels for {len(result)} emails")
-
-    except Exception as e:
-        print(f"Error generating labels: {str(e)}")
-        print("Stack trace:")
-        print(traceback.format_exc())
-        raise typer.Exit(1)
-
-
-@app.command()
-def generate_few_shot_dataset(
-    dumps_dir: str = typer.Option("email_dumps", help="Directory containing email dump JSON files"),
-    analyzed_file: str = typer.Option("analyzed_emails_deepseek.json", help="Analyzed emails JSON file"),
-    output_file: str = typer.Option("label_hierarchy.json", help="Output file for label hierarchy"),
-    examples_file: str = typer.Option("few_shot_examples.json", help="Output file for few-shot examples"),
-    num_examples: int = typer.Option(5, help="Number of examples to include in the prompt"),
-    min_examples_per_label: int = typer.Option(1, help="Minimum number of examples per label"),
-    max_examples_per_label: int = typer.Option(None, help="Maximum number of examples per label. If None, will be calculated to ensure balanced representation")
-):
-    """
-    Generate few-shot learning dataset from email dumps and analyzed content.
-    The dataset will include hierarchical label structure and examples for training.
-    Ensures balanced representation across labels with minimum examples per label.
-    """
-    try:
-        # Build label hierarchy from email dumps
-        print("Building label hierarchy from email dumps...")
-        hierarchy = build_label_hierarchy(dumps_dir)
-        
-        # Save label hierarchy
-        print(f"Saving label hierarchy to {output_file}...")
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(hierarchy.to_dict(), f, indent=2, ensure_ascii=False)
-        
-        # Load analyzed emails
-        print(f"Loading analyzed emails from {analyzed_file}...")
-        with open(analyzed_file, 'r', encoding='utf-8') as f:
-            analyzed_data = json.load(f)
-        
-        # Generate few-shot dataset
-        print("Generating few-shot examples...")
-        dataset = FewShotDataset(hierarchy, analyzed_data)
-        dataset.generate_examples(
-            min_examples_per_label=min_examples_per_label,
-            max_examples_per_label=max_examples_per_label
-        )
-        
-        # Save examples
-        print(f"Saving few-shot examples to {examples_file}...")
-        examples_data = [example.model_dump() for example in dataset.examples]
-        with open(examples_file, 'w', encoding='utf-8') as f:
-            json.dump(examples_data, f, indent=2, ensure_ascii=False)
-        
-        # Generate and print sample prompt
-        print("\nSample few-shot prompt:")
-        print(dataset.generate_prompt(num_examples))
-        
-        print(f"\nTotal examples generated: {len(dataset.examples)}")
-        print("Done!")
-        
-    except Exception as e:
-        traceback.print_exc()
-        print(f"Error generating few-shot dataset: {str(e)}")
-        raise
 
 @app.command()
 def weekly_report(

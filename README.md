@@ -85,7 +85,6 @@ The system uses few-shot learning to generate appropriate labels for emails:
  # not include the end
  - python main_cli.py dump-emails-by-date 2025-01-04 2025-01-12 --output-dir email_dumps --verbose
  - python main_cli.py analyze-emails-by-date 2025-01-04 2025-01-12 --input-dir email_dumps  --verbose
- - python main_cli.py generate-labels-by-date 2025-01-04 2025-01-12 --input-dir email_dumps --verbose
  - streamlit run weekly_report/report_app.py -- --start-date 2025-01-12 --end-date 2025-01-20 --input-dir email_dumps
 
 ## Contributing

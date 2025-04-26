@@ -23,19 +23,7 @@ Your task is to analyze the email and provide:
 Return the analysis in JSON format.
 """
 
-LABEL_SYSTEM_PROMPT = """You are an AI assistant that generates labels for content.
-Given examples of content and their corresponding labels, your task is to generate appropriate labels for new content.
-The labels should be consistent with the examples provided and reflect the main topics or categories of the content.
 
-Rules:
-1. Return ONLY a JSON array of label strings, nothing else
-2. Keep labels concise and lowercase
-3. Use existing labels from examples when possible
-4. Add new labels only when necessary
-5. Focus on the main topics and technologies mentioned
-
-Example output format: ["label1", "label2", "label3"]
-"""
 
 
 TRANSLATE_FROM_EN_TO_CN_SYSTEM_PROMPT = """You are an AI assistant that translates content from English to Chinese.
@@ -66,29 +54,7 @@ Rules:
 def get_email_analysis(content: str) -> EmailAnalysis:
     """Extract structured analysis from email content {content}"""
 
-@llm(
-    #model='ollama/qwen2.5:14b-instruct-fp16',
-    model='ollama/qwen2.5:14b-instruct-q8_0',
-    #model='deepseek/deepseek-chat',
-    api_base='http://192.168.8.120:11434',
-    temperature=0,
-    top_p=0.1,
-    timeout=30,
-    debug=True,
-    system=LABEL_SYSTEM_PROMPT
-)
-def generate_labels(content: str, examples: str) -> List[str]:
-    """Generate labels for the following content based on examples.
-    
-    Here are some examples:
-    {examples}
-    
-    Now generate labels for this content:
-    {content}
-    
-    Return ONLY a JSON array of label strings, nothing else.
-    For example: ["label1", "label2", "label3"]
-    """
+
 
 @llm(
     #model='ollama/qwen2.5:14b-instruct-fp16',
@@ -330,129 +296,6 @@ async def process_date_range(
         
         if verbose:
             print(f"Successfully analyzed {len(result_map)} emails")
-        return result_map
-        
-    except Exception as e:
-        print(f"Error processing date range: {str(e)}")
-        print("Stack trace:")
-        print(traceback.format_exc())
-        return {}
-
-async def process_date_range_labels(
-    input_dir: str,
-    start_date: str,
-    end_date: str,
-    examples_file: str = "./few_shot_examples.json",
-    overwrite: bool = False,
-    verbose: bool = False
-) -> Dict[str, List[str]]:
-    """
-    Process emails within a date range to generate labels using few-shot learning.
-    
-    Args:
-        input_dir: Base directory containing analyzed email JSON files
-        start_date: Start date in format YYYY-MM-DD
-        end_date: End date in format YYYY-MM-DD
-        examples_file: Path to few-shot examples JSON file
-        overwrite: Whether to overwrite existing labels
-        verbose: Whether to enable verbose logging
-    """
-    try:
-        # Load few-shot examples
-        with open(examples_file, 'r', encoding='utf-8') as f:
-            examples_data = json.load(f)
-            
-        # Format examples for the prompt
-        examples_text = "\n".join([
-            f"Content: {example['content']}\nExpected labels: {json.dumps(example['labels'])}"
-            for example in examples_data[:]  # Use only first 5 examples to keep prompt size reasonable
-        ])
-        
-        if verbose:
-            print(f"Loaded {len(examples_data)} few-shot examples")
-            
-        # Convert dates to datetime objects
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        
-        result_map = {}
-        
-        # Walk through directory structure
-        for year in range(start_dt.year, end_dt.year + 1):
-            year_dir = os.path.join(input_dir, str(year))
-            if not os.path.exists(year_dir):
-                continue
-                
-            for month in range(1, 13):
-                if year == start_dt.year and month < start_dt.month:
-                    continue
-                if year == end_dt.year and month > end_dt.month:
-                    continue
-                    
-                month_dir = os.path.join(year_dir, str(month).zfill(2))
-                if not os.path.exists(month_dir):
-                    continue
-                    
-                for day in range(1, 32):
-                    try:
-                        current_dt = datetime(year, month, day)
-                    except Exception as e:
-                        print(f"Invalid date: {year}-{month}-{day}")
-                        continue
-                    if current_dt < start_dt or current_dt > end_dt:
-                        continue
-                        
-                    day_dir = os.path.join(month_dir, str(day).zfill(2))
-                    if not os.path.exists(day_dir):
-                        continue
-                        
-                    if verbose:
-                        print(f"Processing directory: {day_dir}")
-                        
-                    # Process analyzed JSON files
-                    for file_name in os.listdir(day_dir):
-                        if not file_name.endswith('_analyzed.json'):
-                            continue
-                            
-                        file_path = os.path.join(day_dir, file_name)
-                        email_id = file_name.replace('_analyzed.json', '')
-                        
-                        try:
-                            # Load analyzed email
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                email_data = json.load(f)
-                                
-                            # Skip if already has labels and not overwriting
-                            if not overwrite and email_data.get('post_labels'):
-                                if verbose:
-                                    print(f"Skipping {email_id}: already has labels")
-                                continue
-                                
-                            if verbose:
-                                print(f"Generating labels for {email_id}")
-                                
-                            # Generate labels using few-shot learning
-                            content = email_data.get('post_content_en', '')
-                            if not content:
-                                print(f"Warning: No English content found for {email_id}")
-                                continue
-                                
-                            labels = generate_labels(content, examples_text)
-                            email_data['post_labels'] = labels
-                            result_map[email_id] = labels
-                            
-                            # Save updated email data
-                            with open(file_path, 'w', encoding='utf-8') as f:
-                                json.dump(email_data, f, ensure_ascii=False, indent=2)
-                                
-                        except Exception as e:
-                            print(f"Error processing {file_path}: {str(e)}")
-                            if verbose:
-                                traceback.print_exc()
-                            continue
-                            
-        if verbose:
-            print(f"Successfully generated labels for {len(result_map)} emails")
         return result_map
         
     except Exception as e:
