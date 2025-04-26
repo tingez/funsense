@@ -6,7 +6,7 @@ import asyncio
 import traceback
 from typing import Optional
 from pathlib import Path
-from twitter.twitter_crawler import TwitterCrawler
+
 from gmail_api.email_analyzer import process_directory, process_date_range, process_date_range_labels
 from gmail_api.auth import get_gmail_service
 from gmail_api.email_dumper import EmailDumper
@@ -99,59 +99,6 @@ def trim_data_according_to_openai():
         json.dump(output_email_data, f, ensure_ascii=False, indent=2)
 
 
-@app.command()
-def crawl_tweet(
-    url: str = typer.Argument(..., help="Twitter URL to crawl"),
-    output_file: Optional[Path] = typer.Option(
-        None,
-        "--output", "-o",
-        help="Output file path (JSON format)"
-    ),
-    show_browser: bool = typer.Option(
-        False,
-        "--show-browser",
-        help="Show browser window while crawling"
-    ),
-    verbose: bool = typer.Option(
-        False,
-        "--verbose", "-v",
-        help="Enable verbose logging"
-    )
-):
-    """
-    Crawl a tweet and convert its content to markdown.
-    """
-    try:
-        if verbose:
-            print("Verbose mode enabled")
-
-        print(f"Crawling tweet from URL: {url}")
-        with TwitterCrawler(headless=not show_browser) as crawler:
-            result = crawler.get_tweet_content(url)
-
-            if not result:
-                print("Failed to retrieve tweet content.")
-                raise typer.Exit(1)
-
-            # Print the markdown content
-            print("Tweet content:")
-            print(result['markdown'])
-
-            if result['image_urls']:
-                print("Found images:")
-                for url in result['image_urls']:
-                    print(f"  • {url}")
-
-            # Save to file if specified
-            if output_file:
-                output_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(output_file, 'w', encoding='utf-8') as f:
-                    json.dump(result, f, ensure_ascii=False, indent=2)
-                print(f"Saved tweet data to: {output_file}")
-
-    except Exception as e:
-        print(f"Error during crawling: {e}")
-        raise typer.Exit(1)
 
 @app.command()
 def analyze(
