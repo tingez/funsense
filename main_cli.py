@@ -13,6 +13,9 @@ from gmail_api.email_dumper import EmailDumper
 from googleapiclient.discovery import build
 import datetime
 
+# Import the PDF parser
+from tools.pdf.pdf_parser import parse_pdf
+
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 @app.command()
@@ -118,7 +121,7 @@ def analyze(
     try:
         # Process emails
         results = asyncio.run(process_directory(input_dir, output_file))
-        
+
         if not results:
             print("No emails were successfully processed")
             raise typer.Exit(1)
@@ -142,7 +145,7 @@ def __parse_label_line(line: str) -> str:
     """Extract the actual label name from a line that might include ID and prefix."""
     # Remove the leading "- " if present
     line = line.lstrip('- ')
-    
+
     # Extract the label name (everything before " (ID: Label_...")
     match = re.match(r'^([^(]+?)(?:\s+\(ID: Label_\d+\))?$', line.strip())
     if match:
@@ -196,7 +199,7 @@ def dump_emails(
         # Dump emails
         print("Starting email dump...")
         output_file = dumper.dump_emails_by_labels(labels, output_dir)
-        
+
         if output_file:
             print("\nEmail dump completed successfully! ")
             print(f"Output file: {output_file}")
@@ -235,7 +238,7 @@ def dump_emails_by_date(
 
         if verbose:
             print(f"Authenticating with Gmail API...")
-        
+
         creds = get_gmail_service()
         if not creds:
             print("Failed to authenticate with Gmail API")
@@ -258,7 +261,7 @@ def dump_emails_by_date(
 
         if verbose:
             print(f"Successfully dumped {len(created_files)} emails")
-            
+
     except Exception as e:
         print(f"Error: {str(e)}")
         print("Stack trace:")
@@ -327,10 +330,10 @@ def weekly_report(
         if verbose:
             print(f"Starting weekly report app for date range {start_date} to {end_date}")
             print(f"Input directory: {input_dir}")
-        
+
         import sys
         import streamlit.web.cli as stcli
-        
+
         # Create a new sys.argv for Streamlit
         sys.argv = [
             "/Users/tinge/work/tinge/agent/venv/funsense_env/bin/streamlit",
@@ -342,7 +345,7 @@ def weekly_report(
             end_date,
             str(overwrite)
         ]
-        
+
         sys.exit(stcli.main())
     except Exception as e:
         print(traceback.format_exc())
@@ -403,6 +406,53 @@ def weekly_report(
         import traceback
         print(traceback.format_exc())
         raise typer.Exit(1)
+
+@app.command()
+def convert_pdf(
+    pdf_path: str = typer.Argument(..., help="Path to the PDF file"),
+    output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Path to save the markdown output"),
+    page_range: Optional[str] = typer.Option(None, "--pages", "-p", help="Page range to convert (e.g., '0,5-10,20')"),
+    languages: Optional[str] = typer.Option(None, "--langs", "-l", help="Comma separated list of languages for OCR"),
+    force_ocr: bool = typer.Option(False, "--force-ocr", help="Force OCR on all pages"),
+    paginate: bool = typer.Option(False, "--paginate", help="Whether to paginate the output"),
+    format: str = typer.Option("markdown", "--format", "-f", help="Output format (markdown, json, or html)"),
+    api_url: str = typer.Option("http://192.168.8.104:8001", "--api-url", help="The base URL of the Marker API")
+):
+    """Convert a PDF file to markdown using the Marker API."""
+    try:
+        print(f"Converting PDF: {pdf_path}")
+        result = parse_pdf(
+            pdf_path=pdf_path,
+            page_range=page_range,
+            languages=languages,
+            force_ocr=force_ocr,
+            paginate_output=paginate,
+            output_format=format,
+            api_url=api_url
+        )
+
+        if not result.success:
+            print("Error: Conversion failed")
+            raise typer.Exit(1)
+
+        if output_file:
+            try:
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(result.output)
+                print(f"Markdown content saved to: {output_file}")
+            except Exception as e:
+                print(f"Error saving output file: {e}")
+                print(traceback.format_exc())
+                raise typer.Exit(1)
+        else:
+            print("\nMarkdown Content:")
+            print("="*50)
+            print(result.output)
+    except Exception as e:
+        print(f"Error converting PDF: {e}")
+        print(traceback.format_exc())
+        raise typer.Exit(1)
+
 
 if __name__ == "__main__":
     app()
