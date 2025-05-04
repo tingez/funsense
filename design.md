@@ -68,6 +68,7 @@ The core data model for email analysis is implemented as a Pydantic model with t
 ```python
 class EmailAnalysis(BaseModel):
     email_id: str
+    post_labels: List[str]
     post_content_cn: str
     post_content_en: str
     link_lists: List[str]
@@ -85,20 +86,19 @@ The weekly report system uses two main data models:
 ```python
 class WeeklyPost(BaseModel):
     email_id: str
+    post_datetime: str
     title_cn: str
     title_en: str
     post_content_cn: str
     post_content_en: str
-    post_summary_cn: str
-    post_summary_en: str
+    post_labels: list[str]
+    link_lists: list[str]
+    user_input_cn: str
+    user_input_en: str
     main_image: str
     main_link: str
-    link_lists: List[str]
-    post_datetime: datetime
-    wechat_selected: bool = False
-    medium_selected: bool = False
-    user_input_cn: str = ""
-    user_input_en: str = ""
+    wechat_selected: bool
+    medium_selected: bool
 
 class WeeklyReport(BaseModel):
     start_date: str

@@ -21,12 +21,16 @@ This project provides functionality to automatically analyze and tag Gmail email
    - Create OAuth 2.0 credentials
    - Download the credentials and save as `credentials.json` in the project root
 
-2. **Install Dependencies**
+2. **Create PDF Service(based on Marker API)**
+   - pip install -U marker-pdf uvicorn fastapi python-multipart
+   - marker_server --port 8001 --host 0.0.0.0
+
+3. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **First Run**
+4. **First Run**
    - Run the main script:
      ```bash
      python main_cli.py dump-emails-by-date 2025-01-01 2025-01-31 --output-dir email_dumps --verbose

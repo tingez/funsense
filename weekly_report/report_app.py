@@ -60,35 +60,35 @@ def load_analyzed_emails(input_dir: str, start_date: str, end_date: str) -> List
     email_data_list = []
     start_date_obj = datetime.datetime.strptime(start_date, "%Y-%m-%d")
     end_date_obj = datetime.datetime.strptime(end_date, "%Y-%m-%d")
-    
+
     # Iterate through directory structure: year/month/day
     for year in range(start_date_obj.year, end_date_obj.year + 1):
         year_dir = os.path.join(input_dir, str(year))
         if not os.path.exists(year_dir):
             continue
-            
+
         for month in range(1, 13):
             # Skip months outside date range
             if year == start_date_obj.year and month < start_date_obj.month:
                 continue
             if year == end_date_obj.year and month > end_date_obj.month:
                 continue
-                
+
             month_dir = os.path.join(year_dir, f"{month:02d}")
             if not os.path.exists(month_dir):
                 continue
-                
+
             for day in range(1, 32):
                 # Skip days outside date range
                 if year == start_date_obj.year and month == start_date_obj.month and day < start_date_obj.day:
                     continue
                 if year == end_date_obj.year and month == end_date_obj.month and day > end_date_obj.day:
                     continue
-                    
+
                 day_dir = os.path.join(month_dir, f"{day:02d}")
                 if not os.path.exists(day_dir):
                     continue
-                
+
                 # Load all analyzed JSON files in the day directory
                 for filename in os.listdir(day_dir):
                     if filename.endswith("_analyzed.json"):
@@ -100,7 +100,7 @@ def load_analyzed_emails(input_dir: str, start_date: str, end_date: str) -> List
                         except Exception as e:
                             print(f"Error loading file {file_path}: {e}")
                             print(traceback.format_exc())
-    
+
     return email_data_list
 
 
@@ -112,7 +112,7 @@ def convert_to_weekly_post(email_data: Dict[str, Any]) -> WeeklyPost:
             email_data['post_labels'] = json.loads(email_data['post_labels'])
         except json.JSONDecodeError:
             email_data['post_labels'] = []
-    
+
     # Create WeeklyPost object from email data
     if not email_data.get('post_datetime'):
         return None
@@ -154,11 +154,11 @@ def _group_posts_by_labels(posts: List[WeeklyPost]) -> Dict[str, List[WeeklyPost
     for post in posts:
         # Create a sorted key of all labels for consistent grouping
         labels_key = ", ".join(sorted(post.post_labels)) or "Uncategorized"
-        
+
         if labels_key not in posts_by_labels:
             posts_by_labels[labels_key] = []
         posts_by_labels[labels_key].append(post)
-    
+
     return posts_by_labels
 
 
@@ -172,10 +172,10 @@ def generate_markdown_report(report: WeeklyReport, is_wechat: bool) -> str:
     """Generate a markdown report for WeChat or Medium platforms."""
     # Filter posts based on platform selection
     selected_posts = [p for p in report.posts if (p.wechat_selected if is_wechat else p.medium_selected)]
-    
+
     # Group posts by their labels
     grouped_posts = _group_posts_by_labels(selected_posts)
-    
+
     # Create table of contents for WeChat reports
     final_blocks = []
     if is_wechat:
@@ -194,11 +194,11 @@ def generate_markdown_report(report: WeeklyReport, is_wechat: bool) -> str:
     content_blocks = []
     for labels_key, posts_in_group in grouped_posts.items():
         formatted_labels = _format_labels_markdown(labels_key)
-        
+
         for post in posts_in_group:
             post_index = selected_posts.index(post) + 1
             total_posts = len(selected_posts)
-            
+
             if is_wechat:
                 # Chinese content for WeChat
                 content_blocks.extend([
@@ -239,10 +239,10 @@ def generate_notion_report(report: WeeklyReport) -> str:
     """Generate a markdown report for Notion using English content in WeChat format."""
     # Only include posts selected for WeChat
     wechat_posts = [p for p in report.posts if p.wechat_selected]
-    
+
     # Group posts by their labels
     grouped_posts = _group_posts_by_labels(wechat_posts)
-    
+
     # First, create table of contents
     toc_blocks = ["# Table of Contents", ""]
     post_index = 1
@@ -260,11 +260,11 @@ def generate_notion_report(report: WeeklyReport) -> str:
         # Use comma separator for English content
         labels_list = labels_key.split(", ")
         formatted_labels = ', '.join([f"**{label.strip()}**" for label in labels_list])
-        
+
         for post in posts_in_group:
             post_index = wechat_posts.index(post) + 1
             total_posts = len(wechat_posts)
-            
+
             content_blocks.extend([
                 f"## ({post_index}/{total_posts}) {post.title_en}",
                 formatted_labels,
@@ -279,7 +279,7 @@ def generate_notion_report(report: WeeklyReport) -> str:
                 ""
             ])
         content_blocks.append("")
-    
+
     # Combine TOC with content blocks
     final_blocks = toc_blocks + content_blocks
 
@@ -340,13 +340,13 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
     """Run the Streamlit app with the given parameters."""
     # Configure the page layout
     st.set_page_config(layout="wide", page_title="Weekly Report Editor")
-    
+
     # Initialize session state variables
     _init_session_state()
-    
+
     # Get file path for report
     target_file, week_number = _get_report_file_path(input_dir, end_date)
-    
+
     # Load or create report
     if st.session_state.report is None:
         if os.path.exists(target_file) and not overwrite:
@@ -369,7 +369,7 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
     else:
         # Use existing report from session state
         report = st.session_state.report
-    
+
 def _render_sidebar_header(start_date: str, end_date: str, input_dir: str) -> None:
     """Render the sidebar header with report metadata."""
     st.title("Weekly Report Editor")
@@ -418,7 +418,7 @@ def _render_sidebar_filters() -> tuple[list, list, str]:
             key="date_filter",
             help="Filter posts by date range"
         )
-        
+
     return platform_filter, content_filter, date_range_filter
 
 
@@ -426,25 +426,25 @@ def _apply_platform_filter(posts: List[WeeklyPost], platform_filter: List[str]) 
     """Apply platform-based filtering to posts."""
     if "All" in platform_filter:
         return posts
-    
+
     filtered_dict = {}  # Use dict to maintain uniqueness by email_id
-    
+
     if "WeChat" in platform_filter:
         for post in posts:
             if post.wechat_selected:
                 filtered_dict[post.email_id] = post
-                
+
     if "Medium" in platform_filter:
         for post in posts:
             if post.medium_selected:
                 filtered_dict[post.email_id] = post
-                
+
     if "Future" in platform_filter:
         # Posts not selected for any platform yet
         for post in posts:
             if not (post.wechat_selected or post.medium_selected):
                 filtered_dict[post.email_id] = post
-                
+
     return list(filtered_dict.values())
 
 
@@ -452,29 +452,29 @@ def _apply_content_filter(posts: List[WeeklyPost], content_filter: List[str]) ->
     """Apply content-based filtering to posts."""
     if "All" in content_filter:
         return posts
-    
+
     filtered_dict = {}  # Use dict to maintain uniqueness by email_id
-    
+
     if "Has Image" in content_filter:
         for post in posts:
             if post.main_image:
                 filtered_dict[post.email_id] = post
-                
+
     if "Has Link" in content_filter:
         for post in posts:
             if post.main_link or post.link_lists:
                 filtered_dict[post.email_id] = post
-                
+
     if "Has CN" in content_filter:
         for post in posts:
             if post.title_cn.strip() or post.post_content_cn.strip():
                 filtered_dict[post.email_id] = post
-                
+
     if "Has EN" in content_filter:
         for post in posts:
             if post.title_en.strip() or post.post_content_en.strip():
                 filtered_dict[post.email_id] = post
-                
+
     return list(filtered_dict.values())
 
 
@@ -482,10 +482,10 @@ def _apply_date_filter(posts: List[WeeklyPost], date_range_filter: str) -> List[
     """Apply date-based filtering to posts."""
     if date_range_filter == "All Time":
         return posts
-    
+
     current_time = datetime.datetime.now()
     time_threshold = 24 * 3600 if date_range_filter == "Last 24h" else 7 * 24 * 3600  # Seconds in a day or week
-    
+
     return [
         post for post in posts
         if (current_time - datetime.datetime.fromisoformat(post.post_datetime)).total_seconds() < time_threshold
@@ -495,7 +495,7 @@ def _apply_date_filter(posts: List[WeeklyPost], date_range_filter: str) -> List[
 def _render_sidebar_stats(report: WeeklyReport, filtered_posts: List[WeeklyPost]) -> None:
     """Render statistics about the filtered posts."""
     st.header("Report Statistics")
-    
+
     # First row of stats
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
@@ -519,7 +519,7 @@ def _render_sidebar_stats(report: WeeklyReport, filtered_posts: List[WeeklyPost]
         st.metric("CN Content", len([p for p in filtered_posts if p.title_cn.strip() or p.post_content_cn.strip()]))
     with col4:
         st.metric("EN Content", len([p for p in filtered_posts if p.title_en.strip() or p.post_content_en.strip()]))
-    
+
     st.markdown("---")
 
 def _render_sidebar_actions(report: WeeklyReport, target_file: str, week_number: int, input_dir: str) -> None:
@@ -546,8 +546,8 @@ def _render_sidebar_actions(report: WeeklyReport, target_file: str, week_number:
     col1, col2 = st.columns(2)
     with col1:
         if st.button(" Download Images", use_container_width=True):
-            _download_post_images(report.posts, input_dir)
-    
+            _download_post_images(report.posts, input_dir, week_number)
+
     with col2:
         if st.button(" WeChat Report", use_container_width=True):
             _generate_platform_report(report, target_file, week_number, platform="wechat")
@@ -555,40 +555,60 @@ def _render_sidebar_actions(report: WeeklyReport, target_file: str, week_number:
     # Generate other platform reports
     if st.button(" Medium Report", use_container_width=True):
         _generate_platform_report(report, target_file, week_number, platform="medium")
-        
-    if st.button(" Notion Report", use_container_width=True, 
+
+    if st.button(" Notion Report", use_container_width=True,
                help="Generate English version of WeChat report for Notion"):
         _generate_platform_report(report, target_file, week_number, platform="notion")
 
 
-def _download_post_images(posts: List[WeeklyPost], input_dir: str) -> None:
+def _download_post_images(posts: List[WeeklyPost], input_dir: str, week_num:int) -> None:
     """Download images from posts and save them to appropriate directories."""
     progress = st.progress(0)
     success_count = 0
-    total_images = sum(1 for post in posts if post.main_image)
-    
-    for i, post in enumerate(posts):
-        if post.main_image:
-            try:
-                # Get date from post datetime and create directory structure
-                parsed_date = datetime.datetime.fromisoformat(post.post_datetime)
-                date = Delorean(datetime=parsed_date).datetime
-                img_dir = os.path.join(input_dir, f"{date.year}", f"{date.month:02d}", f"{date.day:02d}")
-                os.makedirs(img_dir, exist_ok=True)
-                
-                # Download and save the image
-                img_path = os.path.join(img_dir, f"{post.email_id}_main_image.jpg")
-                if download_image(post.main_image, img_path):
-                    success_count += 1
-                    print(f"Downloaded image for {post.email_id} to {img_path}")
-                
-                # Update progress bar
-                progress.progress((i + 1) / total_images if total_images > 0 else 1.0)
-            except Exception as e:
-                print(f"Error downloading image for {post.email_id}: {str(e)}")
-                print(traceback.format_exc())
-    
-    st.success(f"Downloaded {success_count} of {total_images} images")
+
+    # Count only posts with images
+    posts_with_images = [post for post in posts if post.main_image]
+    total_images = len(posts_with_images)
+
+    if total_images == 0:
+        st.warning("No images found in the selected posts.")
+        return
+
+    # Get the year for directory structure
+    if posts and len(posts) > 0:
+        parsed_date = datetime.datetime.fromisoformat(posts[0].post_datetime)
+        date = Delorean(datetime=parsed_date).datetime
+        year = date.year
+    else:
+        # Fallback to current date if no posts
+        current_date = datetime.datetime.now()
+        year = current_date.year
+
+    # Create weekly directory structure
+    img_dir = os.path.join(input_dir, f"{year}", "weekly", f"week_{week_num:02d}")
+    os.makedirs(img_dir, exist_ok=True)
+    print(f"Saving images to: {img_dir}")
+
+    # Process only posts with images
+    for idx, post in enumerate(posts_with_images):
+        try:
+            # Get the original index in the full posts list
+            original_idx = posts.index(post)
+
+            # Download and save the image with post index prefix
+            img_path = os.path.join(img_dir, f"{original_idx+1:02d}_{post.email_id}_main_image.jpg")
+            if download_image(post.main_image, img_path):
+                success_count += 1
+                print(f"Downloaded image for post #{original_idx+1} ({post.email_id}) to {img_path}")
+
+            # Update progress bar - ensure value is between 0 and 1
+            progress_value = min(1.0, (idx + 1) / total_images)
+            progress.progress(progress_value)
+        except Exception as e:
+            print(f"Error downloading image for post #{original_idx+1} ({post.email_id}): {str(e)}")
+            print(traceback.format_exc())
+
+    st.success(f"Downloaded {success_count} of {total_images} images to {img_dir}")
 
 
 def _generate_platform_report(report: WeeklyReport, target_file: str, week_number: int, platform: str) -> None:
@@ -604,14 +624,14 @@ def _generate_platform_report(report: WeeklyReport, target_file: str, week_numbe
         else:
             st.error(f"Unknown platform: {platform}")
             return
-        
+
         # Save the report to file
         report_dir = os.path.dirname(target_file)
         md_file = os.path.join(report_dir, f"week_{week_number:02d}-{platform}-report.md")
-        
+
         with open(md_file, 'w', encoding='utf-8') as f:
             f.write(md_content)
-            
+
         st.success(f"Generated {platform.capitalize()} report")
         print(f"Saved {platform} report to {md_file}")
     except Exception as e:
@@ -623,17 +643,17 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
     """Render post header with title and platform selection controls."""
     # Create columns for title and platform selection
     header_cols = st.columns([6, 2, 2])
-    
+
     # Title column
     with header_cols[0]:
         st.subheader(f"Post {index+1}: {st.session_state[post_key].title_cn}")
-    
+
     # Create wechat_changed and medium_changed flags if they don't exist
     if f"wechat_changed_{post.email_id}" not in st.session_state:
         st.session_state[f"wechat_changed_{post.email_id}"] = False
     if f"medium_changed_{post.email_id}" not in st.session_state:
         st.session_state[f"medium_changed_{post.email_id}"] = False
-    
+
     # Create function to update the actual report object from session state
     def update_report_post(post_id):
         # Find the actual post in the report to update it from session state
@@ -644,7 +664,7 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
                     if hasattr(report_post, attr):
                         setattr(report_post, attr, getattr(st.session_state[post_key], attr))
                 break
-        
+
     # WeChat selection column
     with header_cols[1]:
         prev_wechat = st.session_state[post_key].wechat_selected
@@ -653,17 +673,17 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
         if wechat_selected != prev_wechat:
             # Update session state counter for statistics
             st.session_state.wechat_count += (1 if wechat_selected else -1)
-            
+
             # Update session state post
             st.session_state[post_key].wechat_selected = wechat_selected
-            
+
             # Update the actual post in the report
             update_report_post(post.email_id)
-            
+
             print(f"WeChat selection changed for post {post.email_id}: {wechat_selected}")
             st.session_state[f"wechat_changed_{post.email_id}_{index}"] = True
             st.rerun()
-    
+
     # Medium selection column
     with header_cols[2]:
         prev_medium = st.session_state[post_key].medium_selected
@@ -672,13 +692,13 @@ def _render_post_header(post: WeeklyPost, index: int, post_key: str) -> None:
         if medium_selected != prev_medium:
             # Update session state counter for statistics
             st.session_state.medium_count += (1 if medium_selected else -1)
-            
+
             # Update session state post
             st.session_state[post_key].medium_selected = medium_selected
-            
+
             # Update the actual post in the report
             update_report_post(post.email_id)
-            
+
             print(f"Medium selection changed for post {post.email_id}: {medium_selected}")
             st.session_state[f"medium_changed_{post.email_id}_{index}"] = True
             st.rerun()
@@ -807,7 +827,7 @@ def _render_post_content(post: WeeklyPost, index: int, post_key: str) -> None:
                 st.session_state[post_key].post_content_cn = translate_from_en_to_cn(st.session_state[post_key].post_content_en)
                 st.session_state[post_key].user_input_cn = translate_from_en_to_cn(st.session_state[post_key].user_input_en)
                 st.rerun()
-            
+
     # Labels and Links
     col1, col2 = st.columns(2)
     with col1:
@@ -817,7 +837,7 @@ def _render_post_content(post: WeeklyPost, index: int, post_key: str) -> None:
                                  height=100,
                                  key=f"labels_{post.email_id}")
         st.session_state[post_key].post_labels = [label.strip() for label in labels_str.split("\n") if label.strip()]
-    
+
     with col2:
         st.markdown("##### Links")
         links_str = st.text_area(f"Links #{post.email_id} (one per line)",
@@ -825,13 +845,13 @@ def _render_post_content(post: WeeklyPost, index: int, post_key: str) -> None:
                                 height=100,
                                 key=f"links_{post.email_id}")
         st.session_state[post_key].link_lists = [link.strip() for link in links_str.split("\n") if link.strip()]
-        
+
         # Display clickable links
         if st.session_state[post_key].link_lists:
             st.markdown("**Clickable Links:**")
             for link in st.session_state[post_key].link_lists:
                 st.markdown(f"[{link}]({link})")
-    
+
     # Main Image
     st.markdown("##### Main Image")
     main_image = st.text_input(f"Image URL #{post.email_id}",
@@ -841,7 +861,7 @@ def _render_post_content(post: WeeklyPost, index: int, post_key: str) -> None:
 
     if st.session_state[post_key].main_image:
         st.image(st.session_state[post_key].main_image, caption="Main Image", use_container_width=True)
-    
+
     # Main Link
     st.markdown("##### Main Link")
     main_link = st.text_input(f"Main Link #{post.email_id}",
@@ -853,7 +873,7 @@ def _render_post_content(post: WeeklyPost, index: int, post_key: str) -> None:
     for attr in vars(post):
         if hasattr(st.session_state[post_key], attr):
             setattr(post, attr, getattr(st.session_state[post_key], attr))
-    
+
     # Visual separator between posts
     st.markdown("---")
 
@@ -862,13 +882,13 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
     """Run the Streamlit app with the given parameters."""
     # Configure the page layout
     st.set_page_config(layout="wide", page_title="Weekly Report Editor")
-    
+
     # Initialize session state variables
     _init_session_state()
-    
+
     # Get file path for report
     target_file, week_number = _get_report_file_path(input_dir, end_date)
-    
+
     # Load or create report
     if st.session_state.report is None:
         if os.path.exists(target_file) and not overwrite:
@@ -891,25 +911,25 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
     else:
         # Use existing report from session state
         report = st.session_state.report
-    
+
     # Render sidebar components
     with st.sidebar:
         _render_sidebar_header(start_date, end_date, input_dir)
         _render_sidebar_summary(report)
         platform_filter, content_filter, date_range_filter = _render_sidebar_filters()
-        
+
         # Apply filters in sequence
         filtered_posts = report.posts
         filtered_posts = _apply_platform_filter(filtered_posts, platform_filter)
         filtered_posts = _apply_content_filter(filtered_posts, content_filter)
         filtered_posts = _apply_date_filter(filtered_posts, date_range_filter)
-        
+
         _render_sidebar_stats(report, filtered_posts)
         _render_sidebar_actions(report, target_file, week_number, input_dir)
 
     # Main area - Posts
     st.header("Email Posts")
-    
+
     # Display each post
     for i, post in enumerate(filtered_posts):
         # Create a card-like container for each post
@@ -922,7 +942,7 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
             # Render post components
             _render_post_header(post, i, post_key)
             _render_post_content(post, i, post_key)
-    
+
     # Add a refresh button to manually trigger re-rendering if needed
     if st.button("Refresh View", key="refresh_view_main", use_container_width=True):
         st.rerun()
@@ -930,7 +950,7 @@ def run_app(input_dir: str, start_date: str, end_date: str, overwrite: bool = Fa
 
 if __name__ == "__main__":
     import argparse
-    
+
     # Set up command line argument parser
     parser = argparse.ArgumentParser(description="Weekly Report Editor")
     parser.add_argument("--start-date", required=True, help="Start date in YYYY-MM-DD format")
@@ -938,7 +958,7 @@ if __name__ == "__main__":
     parser.add_argument("--input-dir", required=True, help="Directory containing email dumps")
     parser.add_argument("--overwrite", action="store_true", help="Whether to overwrite existing files")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-    
+
     # Parse arguments and run the app
     args = parser.parse_args()
     run_app(args.input_dir, args.start_date, args.end_date, args.overwrite)
